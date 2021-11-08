@@ -328,6 +328,30 @@ let testSample5 toolsPath workspaceLoader (workspaceFactory: ToolsPath -> IWorks
 
             Expect.equal l2Parsed l2Loaded "l2 notificaton and parsed should be the same")
 
+let testSample7 toolsPath workspaceLoader (workspaceFactory: ToolsPath -> IWorkspaceLoader) =
+    testCase
+    |> withLog
+        (sprintf "can load sample7 - %s" workspaceLoader)
+        (fun logger fs ->
+            let testDir = inDir fs "load_sample7"
+            copyDirFromAssets fs ``sample7 Oldsdk projs``.ProjDir testDir
+
+            let projPath = testDir / (``sample7 Oldsdk projs``.ProjectFile)
+            let projDir = Path.GetDirectoryName projPath
+
+            dotnet fs [ "restore"; projPath ] |> checkExitCodeZero
+
+            let loader = workspaceFactory toolsPath
+
+            let watcher = watchNotifications logger loader
+
+            let parsed = loader.LoadProjects [ projPath ] |> Seq.toList
+
+            [ loading "MultiProject1.csproj"
+              loaded "MultiProject1.csproj" ]
+            |> expectNotifications (watcher.Notifications))
+
+
 let testLoadSln toolsPath workspaceLoader (workspaceFactory: ToolsPath -> IWorkspaceLoader) expected =
     testCase
     |> withLog
@@ -1004,6 +1028,8 @@ let tests toolsPath =
           testSample4 toolsPath "WorkspaceLoaderViaProjectGraph" WorkspaceLoaderViaProjectGraph.Create
           testSample5 toolsPath "WorkspaceLoader" WorkspaceLoader.Create
           testSample5 toolsPath "WorkspaceLoaderViaProjectGraph" WorkspaceLoaderViaProjectGraph.Create
+          testSample7 toolsPath "WorkspaceLoader" WorkspaceLoader.Create
+          testSample7 toolsPath "WorkspaceLoaderViaProjectGraph" WorkspaceLoaderViaProjectGraph.Create
           testSample9 toolsPath "WorkspaceLoader" WorkspaceLoader.Create
           testSample9 toolsPath "WorkspaceLoaderViaProjectGraph" WorkspaceLoaderViaProjectGraph.Create
           //Sln tests
